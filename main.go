@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/buger/jsonparser"
-	blackfriday "gopkg.in/russross/blackfriday.v2"
+	md "github.com/nikitavoloboev/markdown-parser"
 )
 
 type Content struct {
@@ -77,11 +77,14 @@ func SearchGithub(username string, repoName string, path string) error {
 	jsonparser.ArrayEach(data, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
 		t, _ := jsonparser.GetString(value, "type")
 		name, _ := jsonparser.GetString(value, "name")
-		url, _ := jsonparser.GetString(value, "url")
+		url, _ := jsonparser.GetString(value, "download_url")
+		fmt.Printf("URL IS %s\n\n", url)
+		// Recursive case
 		if t == "dir" {
 			fmt.Println("enqueuing %s", url)
 			queue = append(queue, url) //enQ
 		}
+		// Base case - i'm a file
 		if t == "file" && isMarkdown(name) {
 			brokenLinks, err := brokenLinks(url)
 			if err != nil {
@@ -109,16 +112,27 @@ func getJson(url string) ([]byte, error) {
 
 // given a markdown url, return any broken links
 func brokenLinks(url string) ([]string, error) {
+
+	broken := []string{}
+
 	// get markdown contents from url
-
-	resp, _ := http.Get(url)
-	bytes, _ := ioutil.ReadAll(resp.Body)
-
-	output := blackfriday.Run(bytes)
-
-	// for each link ...
-	// is 404 ?
-	return []string{}, nil
+	body, err := md.DownloadURL(url)
+	if err != nil {
+		return broken, err
+	}
+	fmt.Printf("\n\n GOT MARKDOWN: %s \n\n", body)
+	links := md.GetAllLinks(body)
+	for k := range links {
+		fmt.Printf("\n\nCHECKING IF link=%s is broken\n\n", k)
+		broke, err := is404(k)
+		if err != nil {
+			return broken, fmt.Errorf("Could not check if link %s was 404: %v", k, err)
+		}
+		if broke {
+			broken = append(broken, k)
+		}
+	}
+	return broken, nil
 }
 
 func is404(url string) (bool, error) {
