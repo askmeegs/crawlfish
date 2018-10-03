@@ -9,8 +9,7 @@ import (
 	"time"
 
 	"github.com/buger/jsonparser"
-
-	"gopkg.in/russross/blackfriday.v2"
+	blackfriday "gopkg.in/russross/blackfriday.v2"
 )
 
 type Content struct {
@@ -116,7 +115,6 @@ func brokenLinks(url string) ([]string, error) {
 	bytes, _ := ioutil.ReadAll(resp.Body)
 
 	output := blackfriday.Run(bytes)
-	fmt.Printf("%#v", output)
 
 	// for each link ...
 	// is 404 ?
