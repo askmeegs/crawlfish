@@ -3,6 +3,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:5e33f17a0345f8ff94763b128e790293c0d5b060d57a32aadfcc23fd51a619fa"
+  name = "github.com/buger/jsonparser"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "6acdf747ae99cad92d1e8134606008acaca71844"
+
+[[projects]]
+  branch = "master"
   digest = "1:def689e73e9252f6f7fe66834a76751a41b767e03daab299e607e7226c58a855"
   name = "github.com/shurcooL/sanitized_anchor_name"
   packages = ["."]
@@ -20,6 +28,9 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  input-imports = ["gopkg.in/russross/blackfriday.v2"]
+  input-imports = [
+    "github.com/buger/jsonparser",
+    "gopkg.in/russross/blackfriday.v2",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1

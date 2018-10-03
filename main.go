@@ -1,13 +1,14 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/buger/jsonparser"
 
 	"gopkg.in/russross/blackfriday.v2"
 )
@@ -48,7 +49,6 @@ func main() {
 				}
 				fmt.Printf("\nBadfiles is now lengh %d...", len(results))
 			}
-
 			fmt.Printf("USER=%s, REPO=%s, MARKDOWN FILES w/ 404 LINKS: %#v \n\n\n", u, repoName, results)
 		}
 	}
@@ -70,42 +70,42 @@ func SearchGithub(username string, repoName string, path string) error {
 	fmt.Printf("\n\n Sleeping, then searching: %s", url)
 	time.Sleep(time.Second * 2)
 
-	var items []Content
-
-	err := getJson(url, &items)
+	data, err := getJson(url)
 	if err != nil {
 		return err
 	}
 
-	// if it's a directory, add it to crawl. if it's markdown, check if 404.
-	for _, i := range items {
-		if i.t == "dir" {
-			fmt.Println("enqueuing %s", i.url)
-			queue = append(queue, i.url) //enQ
+	jsonparser.ArrayEach(data, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
+		t, _ := jsonparser.GetString(value, "type")
+		name, _ := jsonparser.GetString(value, "name")
+		url, _ := jsonparser.GetString(value, "url")
+		if t == "dir" {
+			fmt.Println("enqueuing %s", url)
+			queue = append(queue, url) //enQ
 		}
-		if i.t == "file" && isMarkdown(i.name) {
-			brokenLinks, err := brokenLinks(i.url)
+		if t == "file" && isMarkdown(name) {
+			brokenLinks, err := brokenLinks(url)
 			if err != nil {
-				log.Printf("Could not check if 404 (%s) - %v ", i.url, err)
+				log.Printf("Could not check if 404 (%s) - %v ", url, err)
 			}
 			if len(brokenLinks) > 0 {
-				results[i.url] = brokenLinks
+				results[url] = brokenLinks
 			}
 		}
-	}
+
+	})
 
 	return nil
 
 }
 
-func getJson(url string, target interface{}) error {
+func getJson(url string) ([]byte, error) {
 	r, err := myClient.Get(url)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer r.Body.Close()
-
-	return json.NewDecoder(r.Body).Decode(target)
+	return ioutil.ReadAll(r.Body)
 }
 
 // given a markdown url, return any broken links
